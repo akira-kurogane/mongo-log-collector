@@ -1,0 +1,55 @@
+#!/bin/bash
+
+timespec="$1" ; shift
+ports=("$@")
+
+function logfile_for_pid {
+	local mpid="$1"
+	local f
+	for f in $(ls /proc/$mpid/fdinfo | sed '/^[012]$/d'); do
+		grep -q '^flags:\s\s*0[0-7]*01\s*' "/proc/$mpid/fdinfo/$f" \
+			&& readlink "/proc/$mpid/fd/$f"
+	done \
+		| grep -v '^/dev/null$' \
+		| grep -v '/journal/[^/]*$' \
+		| grep '\.log$' \
+		| head -1
+}
+
+function collect_pid {
+	local mpid="$1"
+	logfile="$(logfile_for_pid $mpid)"
+	if [ ! "$logfile" ]; then
+		echo "ERROR: Unable to file logfile for pid $mpid" 1>&2
+		return
+	fi
+	echo "INFO: pid $mpid has logfile $logfile" 1>&2
+	# ...
+	# FIXME: actually get and spit out the log
+	echo "DEBUG: grabbing logfile \"$logfile\" for timespec \"$timespec\"" 1>&2
+	if [ "$timespec" = all ]; then
+		timespec=""
+	fi
+	zgrep "^$timespec" $(ls -r "$logfile"*)
+}
+
+hostname="$(hostname)"
+hostname_fqdn="$(hostname -f)"
+
+echo "INFO: hostname is $hostname, FQDN is $hostname_fqdn" 1>&2
+
+if [ "${#ports[@]}" -gt 0 ]; then
+	echo "INFO: finding process for port $port on host $hostname" 1>&2
+	for port in "${ports[@]}"; do
+		pid="$(netstat -lnp 2>&1 | awk -v port="$port" '$1 == "tcp" && $4 ~ ":" port "$" && $NF ~ "/mongo[ds]$" {print gensub("/.*$", "", "", $NF)}')"
+		echo "INFO: port $port on host $hostname is owned by $pid" 1>&2
+		collect_pid "$pid"
+	done
+else
+	# Get logs of all mongod/s related pids
+	echo "INFO: finding all mongod/mongos processes on host $hostname" 1>&2
+	for pid in $(ps -C mongod,mongos -o pid --no-header); do
+		collect_pid "$pid"
+	done
+fi
+
