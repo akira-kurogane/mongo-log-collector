@@ -9,7 +9,7 @@ mhostport=${1}
 
 #printHostInfosAsTSV() prints 2 or 3 tab-separated columns: process type (mongod or mongos), host-post string,
 #  and a ";"-delimited string of optional properties such as replica set name
-mongo --quiet ${mhostport} --eval 'load("'${PWD}'/walk_the_nodes.js"); load("'${PWD}'/topology_to_tsv.js"); printHostInfosAsTSV();' | while read ptype hp opts; do
+mongo --quiet ${mhostport} --eval 'load("'${PWD}'/walk_the_nodes.js"); load("'${PWD}'/topology_to_tsv.js"); printHostInfosAsTSV(db.serverStatus().host);' | while read ptype hp opts; do
   h=${hp%%:*}
   #Change the opts string to be space delimited now
   opts=${opts//;/ }
