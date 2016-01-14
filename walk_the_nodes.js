@@ -20,13 +20,13 @@ function walkNode(hp_addr, terminate) {
   }
   var hi = {"external_hp": hp_addr, 
             "isMaster": conn.adminCommand({isMaster: 1}), 
-            "serverStatus": conn.adminCommand({serverStatus: 1}),
-            "parsedOpts": conn.adminCommand({getCmdLineOpts: 1}).parsed
+            "serverStatusOutput": conn.adminCommand({serverStatus: 1}),
+            "cmdLineOpts": conn.adminCommand({getCmdLineOpts: 1})
            };
   var isRsNode = !!(hi.isMaster.setName);
-  var isMongos = hi.serverStatus.process == "mongos";
-  var isConfigSvr = hi.parsedOpts.sharding && hi.parsedOpts.sharding.clusterRole && 
-        hi.parsedOpts.sharding.clusterRole == "configsvr";
+  var isMongos = hi.serverStatusOutput.process == "mongos";
+  var isConfigSvr = hi.cmdLineOpts.parsed.sharding && hi.cmdLineOpts.parsed.sharding.clusterRole && 
+        hi.cmdLineOpts.parsed.sharding.clusterRole == "configsvr";
   if (isRsNode) {
     hi.rsstatus = conn.adminCommand({replSetGetStatus: 1});
   }
@@ -38,7 +38,7 @@ function walkNode(hp_addr, terminate) {
     });
   } else if (isMongos || isConfigSvr) {
     if (isMongos) {
-      hi.parsedOpts.sharding.configDB.split(",").forEach(function(cfg_hp_addr) {
+      hi.cmdLineOpts.parsed.sharding.configDB.split(",").forEach(function(cfg_hp_addr) {
         walkNode(cfg_hp_addr, true).forEach(function(hi) { r.push(hi); }) //use terminate=true to stop config sv
       });
     }
@@ -64,5 +64,5 @@ function walkNode(hp_addr, terminate) {
 }
 
 //Some debug printing out.
-//all_hosts_info.forEach(function(hi) { print(hi.serverStatus.process  + "\t" + hi.serverStatus.host); } );
+//all_hosts_info.forEach(function(hi) { print(hi.serverStatusOutput.process  + "\t" + hi.serverStatusOutput.host); } );
 

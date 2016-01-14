@@ -11,8 +11,8 @@ function printHostInfosAsTSV(starting_node_hostport) {
 
   all_hosts_info.forEach(function(hi) { 
       var oprops = []; //Important properties other than process type or hostport address.
-      if (hi.parsedOpts.systemLog && hi.parsedOpts.systemLog.path)
-        oprops.push("logpath=" + hi.parsedOpts.systemLog.path);
+      if (hi.cmdLineOpts.parsed.systemLog && hi.cmdLineOpts.parsed.systemLog.path)
+        oprops.push("logpath=" + hi.cmdLineOpts.parsed.systemLog.path);
       if (hi.rsstatus) {
         oprops.push("replSet=" + hi.rsstatus.set);
         hi.rsstatus.members.forEach(function(m) {
@@ -21,10 +21,10 @@ function printHostInfosAsTSV(starting_node_hostport) {
           }
         });
       }
-      if (hi.parsedOpts.sharding && hi.parsedOpts.sharding.clusterRole) {
-        oprops.push("clusterRole=" + hi.parsedOpts.sharding.clusterRole);
+      if (hi.cmdLineOpts.parsed.sharding && hi.cmdLineOpts.parsed.sharding.clusterRole) {
+        oprops.push("clusterRole=" + hi.cmdLineOpts.parsed.sharding.clusterRole);
       }
-      print(hi.serverStatus.process + "\t" + hi.serverStatus.host + "\t" + oprops.join(";")
+      print(hi.serverStatusOutput.process + "\t" + hi.serverStatusOutput.host + "\t" + oprops.join(";")
     ); } );
 
 }
