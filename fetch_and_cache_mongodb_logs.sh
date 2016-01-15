@@ -6,6 +6,7 @@ if [ $# -lt 1 ]; then
   exit 1
 fi
 mhostport=${1}
+this_script_dir=$(readlink -f $(dirname ${0}))
 
 hostinfo_tmpfile=$(mktemp /tmp/mlc_hostinfo.XXXXXX)
 
@@ -14,7 +15,7 @@ hostinfo_tmpfile=$(mktemp /tmp/mlc_hostinfo.XXXXXX)
 #  E.g. "cut -f 2 | sed 's/:.*//' | sort | uniq" gives unique server hostnames
 #  E.g. "grep 'replState=PRIMARY'" filters to only include primary nodes
 #  E.g. "grep clusterRole=configsvr | head -n 1" limits the output to be one confgisvr only
-mongo --quiet ${mhostport} --eval 'load("'${PWD}'/walk_the_nodes.js"); load("'${PWD}'/topology_to_tsv.js"); printHostInfosAsTSV(db.serverStatus().host);' > ${hostinfo_tmpfile}
+mongo --quiet ${mhostport} --eval 'load("'${this_script_dir}'/walk_the_nodes.js"); load("'${this_script_dir}'/topology_to_tsv.js"); printHostInfosAsTSV(db.serverStatus().host);' > ${hostinfo_tmpfile}
 
 echo "$(grep -c 'logpath=' ${hostinfo_tmpfile}) logfiles on $(cut -f 2 ${hostinfo_tmpfile} | sed 's/:.*//' | sort | uniq | wc -l) hosts found"
 
