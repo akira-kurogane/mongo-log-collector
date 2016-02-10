@@ -9,5 +9,5 @@ The ssh\_fetch\_mongodb\_logs.sh script requires SSH access to all the servers t
 ### Quickstart
 
 ```bash
-./ssh\_fetch\_mongodb\_logs.sh mongos_host1:27017
+./ssh_fetch_mongodb_logs.sh mongos_host1:27017
 ```
