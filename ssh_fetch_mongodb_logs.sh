@@ -6,9 +6,8 @@ if [ -z "$(which getopt)" ]; then
   exit 1
 fi
 
-#TODO: figure out if the "argc" getopt parameter is extraneous or not. Delete if it is of course.
 #Reformat the command line args/option for simpler parsing by using the getopt command
-getopt_output=$(getopt -o s:e:r:p --long start-ts:,end-ts:filter-regex:,dry-run,argc -n $(basename $0) -- "$@")
+getopt_output=$(getopt -o s:e:r:p --long start-ts:,end-ts:filter-regex:,dry-run -n $(basename $0) -- "$@")
 eval set -- "$getopt_output"
 while true ; do
     case "$1" in
@@ -75,12 +74,26 @@ hostinfo_tmpfile=$(mktemp /tmp/mlc_hostinfo.XXXXXX)
 ##
 mongo --quiet ${mhostport} --eval 'load("'${this_script_dir}'/walk_the_nodes.js"); load("'${this_script_dir}'/topology_to_tsv.js"); printHostInfosAsTSV(db.serverStatus().host);' > ${hostinfo_tmpfile}
 
+##
+# In 3.4 there can be some logfile-like warnings appearing in the stdout of the
+#   walk_the_nodes.js eval above, despite the use of the --quiet flag. Removing
+#   them by matching on the ISO 8601 timestamp at the front of log lines.
+##
+sed -'/^20..-..-..T..:..:/d' ${hostinfo_tmpfile} > ${hostinfo_tmpfile}.clean && mv ${hostinfo_tmpfile}.clean ${hostinfo_tmpfile}
+
 hcount=$(cut -f 2 ${hostinfo_tmpfile} | sed 's/:.*//' | sort | uniq | wc -l)
 echo "$(grep -c 'logpath=' ${hostinfo_tmpfile}) logfiles on ${hcount} hosts found"
 
 #  TODO: add host type filtering here. E.g. if a "--no-configsvrs" argument is
 #   supplied run: sed -i '/clusterRole=configsvr/d' ${hostinfo_tmpfile}. If
 #   "--no-secondaries" then run: sed -i '/replState=SECONDARY/d' ${hostinfo_tmpfile}
+
+#  TODO: remove processes who have a relative rather than absolute logfile paths,
+#   giving a warning. We could try to work it out by peeking into the 
+#   /proc/<pid>/fd directory, but that's a bit messy. It's probably the 4 fd,
+#   and it's probably the only one with a "flags" line in it's
+#   /proc/<pid>/fdinfo that shows it has append-only mode, but neither of those
+#   seem 100.00% certain.
 
 ##
 # Test ssh connections to all hosts. Print nothing if all OK. If ssh connection
